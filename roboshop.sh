@@ -5,7 +5,7 @@ AMI_ID="ami-0220d79f3f480ecf5"
 
 for instance in $@
 do
-   Instance_id = $( aws ec2 run-instances \
+   Instance_id=$( aws ec2 run-instances \
     --image-id $AMI_ID \
     --instance-type "t3.micro" \
     --security-group-id $SG_ID \
