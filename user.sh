@@ -56,7 +56,7 @@ rm -rf /app/*
 VALIDATE $? "Removing existing code"
 
 unzip /tmp/user.zip &>>$LOGS_FILE
-VALIDATE $? "Uzip catalogue code"
+VALIDATE $? "Uzip user code"
 
 npm install  &>>$LOGS_FILE
 VALIDATE $? "Installing dependencies"
