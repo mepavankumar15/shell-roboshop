@@ -3,7 +3,7 @@
 USER_ID=$(id -u)
 LOGS_FOLDER="/var/log/shell-roboshop"
 LOGS_FILE="$LOGS_FOLDER/$0.log"
-
+SCRIPT_DIR=$PWD
 
 
 R='\e[31m'
@@ -55,13 +55,17 @@ VALIDATE $? "downloading catalogue logic"
 cd /app
 VALIDATE $? "changing directory"
 
+rm -rf /app/*
+VALIDATE $? "remove content exist"
+
+
 unzip /tmp/catalogue.zip
 VALIDATE $? "unzip catalogue logic"
 
 npm install
 VALIDATE $? "installation of npm"
 
-cp catalogue.service /etc/systemd/system/catalogue.service
+cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
 VALIDATE $? "service configuration "
 
 systemctl daemon-reload
