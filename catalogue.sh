@@ -1,89 +1,85 @@
 #!/bin/bash
 
-USER_ID=$(id -u)
+USERID=$(id -u)
 LOGS_FOLDER="/var/log/shell-roboshop"
 LOGS_FILE="$LOGS_FOLDER/$0.log"
+R="\e[31m"
+G="\e[32m"
+Y="\e[33m"
+N="\e[0m"
 SCRIPT_DIR=$PWD
+MONGODB_HOST=mongodb.avyunan.fun
 
-
-R='\e[31m'
-G='\e[32m'
-Y='\e[33m'
-B='\e[34m'
-N='\e[0m'
-
-if [ $USER_ID -ne 0 ]; then
-    echo -e " $R it is not a root user $N" | tee -a $LOGS_FILE
+if [ $USERID -ne 0 ]; then
+    echo -e "$R Please run this script with root user access $N" | tee -a $LOGS_FILE
     exit 1
-fi 
+fi
 
 mkdir -p $LOGS_FOLDER
 
-VALIDATE() {
-    if [ $1 -eq 0 ]; then
-        echo -e "$2 .. is $G SUCCESS $N" | tee -a $LOGS_FILE
-    else
-        echo -e "$2 .. is $R FAILURE $N" | tee -a $LOGS_FILE
+VALIDATE(){
+    if [ $1 -ne 0 ]; then
+        echo -e "$2 ... $R FAILURE $N" | tee -a $LOGS_FILE
         exit 1
+    else
+        echo -e "$2 ... $G SUCCESS $N" | tee -a $LOGS_FILE
     fi
 }
 
-
 dnf module disable nodejs -y &>>$LOGS_FILE
-VALIDATE $? "Module disabling"
+VALIDATE $? "Disabling NodeJS Default version"
 
 dnf module enable nodejs:20 -y &>>$LOGS_FILE
-VALIDATE $? "module version change "
+VALIDATE $? "Enabling NodeJS 20"
 
 dnf install nodejs -y &>>$LOGS_FILE
-VALIDATE $? "Installation of nodejs"
+VALIDATE $? "Install NodeJS"
 
 id roboshop &>>$LOGS_FILE
 if [ $? -ne 0 ]; then
-    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
-    VALIDATE $? "Adding application user"
+    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOGS_FILE
+    VALIDATE $? "Creating system user"
 else
-    echo -e "roboshop user exist .. $Y SKIPPING $N"
+    echo -e "Roboshop user already exist ... $Y SKIPPING $N"
 fi
 
-mkdir /app
-VALIDATE $? "directory creation"
+mkdir -p /app 
+VALIDATE $? "Creating app directory"
 
-curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip 
-VALIDATE $? "downloading catalogue logic"
+curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip  &>>$LOGS_FILE
+VALIDATE $? "Downloading catalogue code"
 
 cd /app
-VALIDATE $? "changing directory"
+VALIDATE $? "Moving to app directory"
 
 rm -rf /app/*
-VALIDATE $? "remove content exist"
+VALIDATE $? "Removing existing code"
 
+unzip /tmp/catalogue.zip &>>$LOGS_FILE
+VALIDATE $? "Uzip catalogue code"
 
-unzip /tmp/catalogue.zip
-VALIDATE $? "unzip catalogue logic"
-
-npm install
-VALIDATE $? "installation of npm"
+npm install  &>>$LOGS_FILE
+VALIDATE $? "Installing dependencies"
 
 cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
-VALIDATE $? "service configuration "
+VALIDATE $? "Created systemctl service"
 
 systemctl daemon-reload
-VALIDATE $? "daemon reload "
-
-systemctl enable catalogue 
+systemctl enable catalogue  &>>$LOGS_FILE
 systemctl start catalogue
-VALIDATE $? "catalogue enable and start "
+VALIDATE $? "Starting and enabling catalogue"
 
 cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo
-VALIDATE $? "coping mongo repo"
+dnf install mongodb-mongosh -y &>>$LOGS_FILE
 
-dnf install mongodb-mongosh -y 
-VALIDATE $? "installing mongosh"
+INDEX=$(mongosh --host $MONGODB_HOST --quiet  --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
 
-mongosh --host mongodb.avyunan.fun </app/db/master-data.js
-VALIDATE $? "Loading master data "
+if [ $INDEX -le 0 ]; then
+    mongosh --host $MONGODB_HOST </app/db/master-data.js
+    VALIDATE $? "Loading products"
+else
+    echo -e "Products already loaded ... $Y SKIPPING $N"
+fi
 
-mongosh --host mongodb.avyunan.fun
-VALIDATE $? "Checking data loading"
-
+systemctl restart catalogue
+VALIDATE $? "Restarting catalogue"
