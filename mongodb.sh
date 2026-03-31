@@ -22,26 +22,26 @@ mkdir -p $LOGS_FOLDER
 VALIDATE() {
     if [ $1 -eq 0 ]; then
         echo -e "$2 .. is $G SUCCESS $N" | tee -a $LOGS_FILE
-        exit 1
     else
         echo -e "$2 .. is $R FAILURE $N" | tee -a $LOGS_FILE
+        exit 1
     fi
 }
 
 cp mongo.repo /etc/yum.repos.d/mongo.repo
 VALIDATE $? "Coping Mongo Repo"
 
-dnf install mongodb-org -y
+dnf install mongodb-org -y &>>$LOGS_FILE
 VALIDATE $? "Installing MongoDB Server"
 
-systemctl enable mongod  
+systemctl enable mongod  &>>$LOGS_FILE
 VALIDATE $? "Enable Mongodb"
 
-systemctl start mongod 
+systemctl start mongod  &>>$LOGS_FILE
 VALIDATE $? "Starting Mongodb"
 
-sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
+sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf &>>$LOGS_FILE
 VALIDATE $? "the configuration for Remote connections" 
 
-systemctl restart mongod 
+systemctl restart mongod  &>>$LOGS_FILE
 VALIDATE $? "restarting Mongodb"
