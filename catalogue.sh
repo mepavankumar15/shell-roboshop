@@ -43,7 +43,7 @@ if [ $? -ne 0 ]; then
     useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
     VALIDATE $? "Adding application user"
 else
-    echo -e "roboshop user exist .. $Y SKIPPING"
+    echo -e "roboshop user exist .. $Y SKIPPING $N"
 fi
 
 mkdir /app
@@ -74,4 +74,16 @@ VALIDATE $? "daemon reload "
 systemctl enable catalogue 
 systemctl start catalogue
 VALIDATE $? "catalogue enable and start "
+
+cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo
+VALIDATE $? "coping mongo repo"
+
+dnf install mongodb-mongosh -y 
+VALIDATE $? "installing mongosh"
+
+mongosh --host mongodb.avyunan.fun </app/db/master-data.js
+VALIDATE $? "Loading master data "
+
+mongosh --host mongodb.avyunan.fun
+VALIDATE $? "Checking data loading"
 
