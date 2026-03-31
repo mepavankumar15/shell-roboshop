@@ -9,6 +9,8 @@ Y="\e[33m"
 N="\e[0m"
 SCRIPT_DIR=$PWD
 
+mkdir -p $LOGS_FOLDER
+
 if [ $USER_ID -ne 0 ]; then
     echo -e " $R the user is not in root path $N" | tee -a $LOGS_FILE
     exit 1
